@@ -3,7 +3,7 @@ import serial
 import numpy as np
 import cv2 as cv
 
-def translate(frame):
+def translate(frame): #maps a range of degrees (init) to 8-bit colour values (result)
     initMin = 20
     initMax = 60
     resultMin = 0
@@ -29,7 +29,7 @@ def frameToImage(frame):
 
         for p in range(y*sideSize, (y+1)*sideSize):
             for r in range(x*sideSize, (x+1)*sideSize):
-                image[r, p, 1] = frame[t] #sadly, full rbg colours slow this
+                image[r, p, 1] = frame[t] #sadly, full rbg colours slows the imshow() function
 
     return image
 
