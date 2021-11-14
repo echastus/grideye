@@ -11,34 +11,25 @@ def translate(frame):
 
     initSpan = initMax - initMin
     resultSpan = resultMax - resultMin
-
-    newFrame = np.zeros(len(frame), np.uint8)
     
     for i in range(len(frame)):
         value = float(frame[i])
         newValue = float(value - initMin) / float(initSpan)
-        newFrame[i] = np.uint8(resultMin + (newValue * resultSpan))
-
-    return newFrame
-
-def coolColors(value):
-    color = (0, value, value/2)
-    return color
+        frame[i] = np.uint8(resultMin + (newValue * resultSpan))
         
 def frameToImage(frame):
     sideSize = 64
-    image = np.zeros((sideSize*8, sideSize*8, 3), np.uint8)
-    
-    translate(frame)            
+    image = np.zeros((sideSize*8, sideSize*8, 3), np.uint8)         
+
+    translate(frame)
 
     for t in range(64):
-        color = coolColors(float(frame[t]))
         y = t // 8
         x = t % 8
 
         for p in range(y*sideSize, (y+1)*sideSize):
             for r in range(x*sideSize, (x+1)*sideSize):
-                image[p, r] = color
+                image[r, p, 1] = frame[t]
 
     return image
 
@@ -51,10 +42,10 @@ output = open('sensorOutput', 'a')
 
 while(1):
     data = serialport.readline().decode('ascii')
-    frame = (data.split(" ")[:-1])
+    frame = data.split(" ")
 
     if len(frame) == 64:
-        output.write(data)
+        # output.write(data)
         cv.imshow('grideye output', frameToImage(frame))
         k = cv.waitKey(1) & 0xFF
         if k == ord('q'):

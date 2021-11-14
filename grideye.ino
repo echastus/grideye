@@ -26,7 +26,7 @@ void loop() {
   // collect the values
   for(unsigned char i = 0; i < 64; i++){
     Serial.print(grideye.getPixelTemperature(i), 2);
-    Serial.print(" ");
+    if (i != 63) Serial.print(" ");
     //if((i+1)%8 == 0) Serial.println();
   }
   Serial.println();
