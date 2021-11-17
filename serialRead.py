@@ -3,7 +3,7 @@ import numpy as np
 import cv2 as cv
 
 def translate(frame): # maps a range of degrees (init) to 8-bit colour values (result)
-    initMin = int(frame[-1])
+    initMin = int(frame[-1]) #last element of frame is value of potentiometer already in degrees
     initMax = 60
     resultMin = 0
     resultMax = 254
