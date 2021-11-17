@@ -3,7 +3,7 @@ import numpy as np
 import cv2 as cv
 
 def translate(frame): # maps a range of degrees (init) to 8-bit colour values (result)
-    initMin = 20
+    initMin = int(frame[-1])
     initMax = 60
     resultMin = 0
     resultMax = 254
@@ -11,7 +11,7 @@ def translate(frame): # maps a range of degrees (init) to 8-bit colour values (r
     initSpan = initMax - initMin
     resultSpan = resultMax - resultMin
     
-    for i in range(len(frame)):
+    for i in range(64):
         value = float(frame[i])
         newValue = max(0, float(value - initMin) / float(initSpan)) # max(0, x) doesnt allow newValue to be negative
         frame[i] = np.uint8(resultMin + (newValue * resultSpan))
@@ -43,7 +43,7 @@ while(1):
         data = serialport.readline().decode('ascii')
         frame = data.split(" ")
 
-        if len(frame) == 64:
+        if len(frame) == 65: 
             # output.write(data)
             cv.imshow('grideye output', frameToImage(frame))
             k = cv.waitKey(1) & 0xFF
