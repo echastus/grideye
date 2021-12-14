@@ -23,7 +23,7 @@ def main():
             for i, row in enumerate(frame):
                 for j, column in enumerate(row):
                     temp = np.uint8(column / 100 * 255)
-                    if temp > 60:
+                    if temp > 62:
                         new_frame[(64 * i):(64 * i) + 64, (64 * j):(64 * j) + 64, 1] = temp
                     else:
                         new_frame[(64 * i):(64 * i) + 64, (64 * j):(64 * j) + 64, 1] = 0
