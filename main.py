@@ -19,8 +19,7 @@ def main():
     # port_name = '/dev/cu.usbmodem14101'
     with open("sensorOutput", "r") as f:
         lines = [np.array(line.split(" ")[:-1]).reshape((8, 8)) for line in f if len(line) > 1]
-        for line in lines:
-            print(line)
+        print("GITHUB CHANGE")
 
 
 if __name__ == "__main__":
