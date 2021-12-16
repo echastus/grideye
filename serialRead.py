@@ -40,15 +40,13 @@ unoPort1 = 'COM7'
 unoPort2 = '/dev/cu.usbmodem14101'
 serialport = serial.Serial(unoPort2, baudrate=115200, timeout=2)
 
-with open('sensorOutput', 'a'):
-
+with open('sensorOutput.csv', 'a') as output:
     while True:
         try:
             data = serialport.readline().decode('ascii')
             frame = data.split(" ")
-
             if len(frame) == 65:
-                # output.write(data)
+                output.write(','.join(frame))
                 cv.imshow('grideye output', frameToImage(frame))
                 k = cv.waitKey(1) & 0xFF
                 if k == ord('q'):
