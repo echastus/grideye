@@ -28,6 +28,25 @@ def arr_to_img(frame):
     return new_frame
 
 
+def main_algorithm_with_no_specified_name_for_the_time_being():
+    # I want to dieeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee!!!
+    serial_connection = Serial(arduino_port1, baudrate=115200, timeout=2)
+    tracker = np.zeros(shape=(8, 8), dtype=bool)
+    # while True:
+    data = serial_connection.readline().decode('ascii')
+    data = data.split(" ")[:-1]
+    frame = str_to_arr(data)
+    # Base for the algorithm, basically it is supposed to check if the difference, between the current value and the
+    # previous value is positive and bigger than 1 for example, that would indicate, that something is coming from the
+    # right side, it is then supposed to change the value of tracke on the right edge to True, then it is going to treat
+    # the second column from the right as the first column and do the same, if the whole process goes correctly it would
+    # mean that someone has entered the room. The algorithm that checks if someone comes from the left will be written
+    # later.
+    for val, prev_val in zip(frame[:, -1], prev_frame[:, -1]):
+        print(val - prev_val)
+
+
+
 def display_from_file(filename):
     df = pd.read_csv(filename, header=None)
     for i in range(len(df)):
@@ -80,5 +99,7 @@ def write_to_file(video_length, num_of_vids, sleep_time=5.5):
 
 if __name__ == "__main__":
     # display_from_file('program_output3.csv')
-    display_from_port()
+    # display_from_port()
     # write_to_file(10, 3)
+    main_algorithm_with_no_specified_name_for_the_time_being()
+
