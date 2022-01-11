@@ -20,16 +20,11 @@ void setup() {
 }
 
 void loop() {
-
-  knob = analogRead(0);
-  knob = map(knob, 0, 1023, 0, 25);
-
-  // collect the values from sensor
   for(unsigned char i = 0; i < 64; i++){
     Serial.print(grideye.getPixelTemperature(i), 2);
     Serial.print(" ");
   }
-  Serial.print(knob);
+
   Serial.println();
 
   delay(10);
