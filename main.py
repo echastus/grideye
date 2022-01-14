@@ -20,41 +20,52 @@ def str_to_arr(frame):
     return frame
 
 
+# def arr_to_img(frame):
+#     new_frame = np.zeros(shape=(8 * 64, 8 * 64, 3), dtype=np.uint8)
+#     for i, row in enumerate(frame):
+#         for j, column in enumerate(row):
+#             new_frame[(64 * i):(64 * i) + 64, (64 * j):(64 * j) + 64, :] = frame[i, j] / 80 * 255
+#     return new_frame
+
+
 def arr_to_img(frame):
-    new_frame = np.zeros(shape=(8 * 64, 8 * 64, 3), dtype=np.uint8)
+    new_frame = np.zeros(shape=(8, 8, 3), dtype=np.uint8)
     for i, row in enumerate(frame):
         for j, column in enumerate(row):
-            new_frame[(64 * i):(64 * i) + 64, (64 * j):(64 * j) + 64, 0:2] = frame[i, j] / 80 * 255
+            new_frame[i, j, :] = frame[i, j] / 80 * 255
     return new_frame
-
-
-def main_algorithm_with_no_specified_name_for_the_time_being():
-    # I want to dieeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee!!!
-    serial_connection = Serial(arduino_port1, baudrate=115200, timeout=2)
-    tracker = np.zeros(shape=(8, 8), dtype=bool)
-    # while True:
-    data = serial_connection.readline().decode('ascii')
-    data = data.split(" ")[:-1]
-    frame = str_to_arr(data)
-    # Base for the algorithm, basically it is supposed to check if the difference, between the current value and the
-    # previous value is positive and bigger than 1 for example, that would indicate, that something is coming from the
-    # right side, it is then supposed to change the value of tracke on the right edge to True, then it is going to treat
-    # the second column from the right as the first column and do the same, if the whole process goes correctly it would
-    # mean that someone has entered the room. The algorithm that checks if someone comes from the left will be written
-    # later.
-    for val, prev_val in zip(frame[:, -1], prev_frame[:, -1]):
-        print(val - prev_val)
-
 
 
 def display_from_file(filename):
     df = pd.read_csv(filename, header=None)
+    fgbg = cv.createBackgroundSubtractorMOG2()
     for i in range(len(df)):
         frame = np.array(df.iloc[i]).reshape((8, 8))
-        frame = arr_to_img(frame)
+        frame = arr_to_img(np.transpose(frame))
+        fgmask = fgbg.apply(frame)
         cv.imshow("Frame", frame)
-        cv.waitKey(100)
+        cv.imshow("FG Frame", fgmask)
+        cv.waitKey(10)
     cv.destroyAllWindows()
+
+
+def detect_motion(filename):
+    df = pd.read_csv(filename, header=None)
+    fgbg = cv.createBackgroundSubtractorMOG2()
+    for i in range(len(df)):
+        bools = np.zeros(shape=(8,), dtype=bool)
+        frame = np.array(df.iloc[i]).reshape((8, 8))
+        frame = arr_to_img(np.transpose(frame))
+        fgmask = fgbg.apply(frame)
+        for k in range(8):
+            temp = 0
+            for i in range(8):
+                temp += fgmask[i][k]
+            if temp >= (255 + 255 + 255):
+                bools[k] = True
+        print(fgmask)
+        print(bools)
+
 
 
 def display_from_port():
@@ -66,7 +77,7 @@ def display_from_port():
             frame = str_to_arr(frame)
             frame = arr_to_img(frame)
             cv.imshow('grideye output', frame)
-            k = cv.waitKey(50)
+            k = cv.waitKey(1)
             if k == ord('q'):
                 break
 
@@ -98,8 +109,10 @@ def write_to_file(video_length, num_of_vids, sleep_time=5.5):
 
 
 if __name__ == "__main__":
-    # display_from_file('program_output3.csv')
+    # display_from_file('program_output5.csv')
     # display_from_port()
-    # write_to_file(10, 3)
-    main_algorithm_with_no_specified_name_for_the_time_being()
+    # write_to_file(10, 10, 4)
+    # main_algorithm_with_no_specified_name_for_the_time_being()
+    detect_motion('program_output5.csv')
+
 
