@@ -54,16 +54,24 @@ def detect_motion(filename):
     df = pd.read_csv(filename, header=None)
     fgbg = cv.createBackgroundSubtractorMOG2()
     bools = np.zeros(shape=(3, ), dtype=bool)
-    # Loop that goes through each frame
+    # Loop that goes through each frame.
     for i in range(len(df)):
         frame = np.array(df.iloc[i]).reshape((8, 8))
+
+        # Create an image to see the sensor output.
         frame2 = arr_to_img(np.transpose(frame))
+
+        # Create an image for the algorithm to work on.
         frame = arr_to_img2(np.transpose(frame))
         fgmask = fgbg.apply(frame)
+
+        # Brain of the algorithm.
+
+        # Returns the sum of pixel values of the left half and the right half of the image.
         temp = sum_halves(fgmask)
         if temp[1] < temp[0]:
             bools[0] = True
-        if temp[1] > temp[0]:
+        if temp[1] > temp[0] and bools[0]:
             bools[1] = True
         if bools[1] and bools[0] and temp[1] < 765:
             bools[2] = True
@@ -125,20 +133,7 @@ def sum_halves(x):
                 temp1 += x[i][j]
             else:
                 temp2 += x[i][j]
-
     return tuple((temp1, temp2))
-
-
-def left_to_right(frame, bools):
-    temp = sum_halves(frame)
-    if temp[1] < temp[0]:
-        bools[0] = True
-    if temp[1] > temp[0]:
-        bools[1] = True
-    if bools[1] and bools[0]:
-        bools[2] = True
-
-    return bools
 
 
 if __name__ == "__main__":
