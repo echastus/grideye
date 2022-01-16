@@ -4,6 +4,8 @@ import cv2 as cv
 import time
 import playsound
 import os
+import threading
+
 
 from serial import Serial
 
@@ -53,7 +55,8 @@ def detect_motion(filename):
     # Initialising necessary variables.
     df = pd.read_csv(filename, header=None)
     fgbg = cv.createBackgroundSubtractorMOG2()
-    bools = np.zeros(shape=(3, ), dtype=bool)
+    left_to_right = np.zeros(shape=(3, ), dtype=bool)
+    right_to_left = np.zeros(shape=(3, ), dtype=bool)
     # Loop that goes through each frame.
     for i in range(len(df)):
         frame = np.array(df.iloc[i]).reshape((8, 8))
@@ -69,18 +72,36 @@ def detect_motion(filename):
 
         # Returns the sum of pixel values of the left half and the right half of the image.
         temp = sum_halves(fgmask)
-        if temp[1] < temp[0]:
-            bools[0] = True
-        if temp[1] > temp[0] and bools[0]:
-            bools[1] = True
-        if bools[1] and bools[0] and temp[1] < 765:
-            bools[2] = True
 
-        if all(bools):
-            print("Someone just went from left to right!")
-            bools.fill(False)
+        # Checking all the conditions for people going left to right.
+        if temp[1] < temp[0] and temp[0] > 765 and not right_to_left[0]:
+            left_to_right[0] = True
+        if temp[1] > temp[0] and left_to_right[0] and not right_to_left[0]:
+            left_to_right[1] = True
+        if left_to_right[1] and left_to_right[0] and temp[1] < 765 and not right_to_left[0]:
+            left_to_right[2] = True
+
+        # Checking all the conditions for people going right to left.
+        if temp[0] < temp[1] and not left_to_right[0]:
+            right_to_left[0] = True
+        if temp[0] > temp[1] and right_to_left[0] and not left_to_right[0]:
+            right_to_left[1] = True
+        if right_to_left[1] and right_to_left[0] and temp[0] < 765 and not left_to_right[0]:
+            right_to_left[2] = True
+
+        # Displaying information
+        if all(left_to_right):
+            print("Someone has just entered the room!")
+            left_to_right.fill(False)
+            right_to_left.fill(False)
+        if all(right_to_left):
+            print("Someone has just left the room!")
+            right_to_left.fill(False)
+            left_to_right.fill(False)
+        # print(left_to_right)
+        # print(right_to_left)
         cv.imshow("Frame", frame2)
-        cv.waitKey(100)
+        cv.waitKey(50)
         cv.destroyAllWindows()
 
 
@@ -141,7 +162,7 @@ if __name__ == "__main__":
     # display_from_port()
     # write_to_file(10, 10, 4)
     # main_algorithm_with_no_specified_name_for_the_time_being()
-    detect_motion('program_output5.csv')
+    detect_motion('program_output10.csv')
 
     # x0 = np.zeros(shape=(8, 8), dtype=np.uint8)
     # x1 = np.zeros(shape=(8, 8), dtype=np.uint8)
