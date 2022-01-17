@@ -51,7 +51,7 @@ def display_from_file(filename):
     cv.destroyAllWindows()
 
 
-def detect_motion(filename):
+def main(filename):
     # Initialising necessary variables.
     df = pd.read_csv(filename, header=None)
     fgbg = cv.createBackgroundSubtractorMOG2()
@@ -60,49 +60,51 @@ def detect_motion(filename):
     # Loop that goes through each frame.
     for i in range(len(df)):
         frame = np.array(df.iloc[i]).reshape((8, 8))
-
         # Create an image to see the sensor output.
-        frame2 = arr_to_img(np.transpose(frame))
+        frame3 = arr_to_img(np.transpose(frame))
 
         # Create an image for the algorithm to work on.
-        frame = arr_to_img2(np.transpose(frame))
-        fgmask = fgbg.apply(frame)
+        temp_frame = arr_to_img2(np.transpose(frame))
+        fgmask = fgbg.apply(temp_frame)
+        frame2 = arr_to_img(fgmask)
 
         # Brain of the algorithm.
 
         # Returns the sum of pixel values of the left half and the right half of the image.
-        temp = sum_halves(fgmask)
+        pixel_halves = sum_pixel_vals(fgmask)
+        temps = sum_temps(frame)
+        print(temps)
+        print(np.abs(temps[0] - temps[1]))
 
         # Checking all the conditions for people going left to right.
-        if temp[1] < temp[0] and temp[0] > 765 and not right_to_left[0]:
+        if pixel_halves[1] < pixel_halves[0] and pixel_halves[0] > 765 and not right_to_left[0]:
             left_to_right[0] = True
-        if temp[1] > temp[0] and left_to_right[0] and not right_to_left[0]:
+            right_to_left.fill(False)
+        if pixel_halves[1] > pixel_halves[0] and left_to_right[0] and not right_to_left[0]:
             left_to_right[1] = True
-        if left_to_right[1] and left_to_right[0] and temp[1] < 765 and not right_to_left[0]:
+        if left_to_right[1] and left_to_right[0] and pixel_halves[1] < 765 and not right_to_left[0]:
             left_to_right[2] = True
 
         # Checking all the conditions for people going right to left.
-        if temp[0] < temp[1] and not left_to_right[0]:
+        if pixel_halves[0] < pixel_halves[1] and pixel_halves[1] > 765 and not left_to_right[0]:
             right_to_left[0] = True
-        if temp[0] > temp[1] and right_to_left[0] and not left_to_right[0]:
+            left_to_right.fill(False)
+        if pixel_halves[0] > pixel_halves[1] and right_to_left[0] and not left_to_right[0]:
             right_to_left[1] = True
-        if right_to_left[1] and right_to_left[0] and temp[0] < 765 and not left_to_right[0]:
+        if right_to_left[1] and right_to_left[0] and pixel_halves[0] < 765 and not left_to_right[0]:
             right_to_left[2] = True
 
         # Displaying information
         if all(left_to_right):
             print("Someone has just entered the room!")
             left_to_right.fill(False)
-            right_to_left.fill(False)
         if all(right_to_left):
             print("Someone has just left the room!")
             right_to_left.fill(False)
-            left_to_right.fill(False)
-        # print(left_to_right)
-        # print(right_to_left)
         cv.imshow("Frame", frame2)
-        cv.waitKey(50)
-        cv.destroyAllWindows()
+        cv.imshow("Frame2", frame3)
+        cv.waitKey(80)
+    cv.destroyAllWindows()
 
 
 def display_from_port():
@@ -145,63 +147,29 @@ def write_to_file(video_length, num_of_vids, sleep_time=5.5):
     os.remove('trashfile.csv')
 
 
-def sum_halves(x):
-    temp1 = 0
-    temp2 = 0
+def sum_pixel_vals(x):
+    left = 0
+    right = 0
     for i in range(8):
         for j in range(8):
             if j < 4:
-                temp1 += x[i][j]
+                left += x[i][j]
             else:
-                temp2 += x[i][j]
-    return tuple((temp1, temp2))
+                right += x[i][j]
+    return tuple((left, right))
+
+
+def sum_temps(x):
+    left = 0
+    right = 0
+    for i in range(8):
+        for j in range(8):
+            if j < 4:
+                left += x[i][j]
+            else:
+                right += x[i][j]
+    return tuple((left, right))
 
 
 if __name__ == "__main__":
-    # display_from_file('program_output5.csv')
-    # display_from_port()
-    # write_to_file(10, 10, 4)
-    # main_algorithm_with_no_specified_name_for_the_time_being()
-    detect_motion('program_output10.csv')
-
-    # x0 = np.zeros(shape=(8, 8), dtype=np.uint8)
-    # x1 = np.zeros(shape=(8, 8), dtype=np.uint8)
-    # x1[0][0] = 255
-    # x1[1][0] = 255
-    # x1[1][1] = 255
-    # x1[2][1] = 255
-    # x1[2][2] = 255
-    # x1[3][2] = 255
-    #
-    # x2 = np.zeros(shape=(8, 8), dtype=np.uint8)
-    # x2[7][7] = 255
-    # x2[7][6] = 255
-    # x2[6][6] = 255
-    # x2[5][6] = 255
-    # x2[4][5] = 255
-    # x3 = np.zeros(shape=(8, 8), dtype=np.uint8)
-    # #765
-    # print(x1)
-    # print(x2)
-    # bools = np.zeros(shape=(3, ), dtype=bool)
-    # temps0 = sum_halves(x0)
-    # temps1 = sum_halves(x1)
-    # temps2 = sum_halves(x2)
-    # temps3 = sum_halves(x3)
-    # print(temps0)
-    # print(temps1)
-    # print(temps2)
-    # print(temps3)
-    #
-    # temps = [temps0, temps1, temps2, temps3]
-    #
-    # for temp in temps:
-    #     if temp[0] >= 765 and temp[1] < temp[0]:
-    #         bools[0] = True
-    #     if temp[1] > temp[0] and temp[1] >= 765:
-    #         bools[1] = True
-    #     if bools[1] and bools[0] and temp[1] < 765:
-    #         bools[2] = True
-    #
-    # if all(bools):
-    #     print("Someone just went from left to right")
+    main('program_output2.csv')
