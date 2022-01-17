@@ -12,6 +12,7 @@ from serial import Serial
 # Variables needed for loading the data from the serial link to Arduino Board.
 arduino_port1 = '/dev/cu.usbmodem14101'
 arduino_port2 = '/dev/cu.usbmodem14201'
+based_port = 'COM7'
 pixel_visibility_threshold = 24.0
 
 
@@ -108,11 +109,14 @@ def main(filename):
 
 
 def display_from_port():
-    serial_connection = Serial(arduino_port1, baudrate=115200, timeout=2)
+    serial_connection = Serial(based_port, baudrate=115200, timeout=1)
     while True:
         try:
-            data = serial_connection.readline().decode('ascii')
+            data = serial_connection.readline().decode('ascii', 'ignore') # added 'ignore' to ignore mostly "codec can't decode byte" errors B)
             frame = data.split(" ")[:-1]
+            if (len(frame)) != 64: # a lot of lines are cut because the connection is started in the middle of transfer
+                continue
+
             frame = str_to_arr(frame)
             frame = arr_to_img(frame)
             cv.imshow('grideye output', frame)
@@ -146,7 +150,11 @@ def write_to_file(video_length, num_of_vids, sleep_time=5.5):
         time.sleep(sleep_time)
     os.remove('trashfile.csv')
 
+def read_and_write_port():
+    serial_connection = Serial(arduino_port1, baudrate=115200, timeout=2)
 
+
+<<<<<<< HEAD
 def sum_pixel_vals(x):
     left = 0
     right = 0
@@ -157,6 +165,13 @@ def sum_pixel_vals(x):
             else:
                 right += x[i][j]
     return tuple((left, right))
+=======
+if __name__ == "__main__":
+    # display_from_file('program_output3.csv')
+    display_from_port()
+    # write_to_file(10, 3)
+    # main_algorithm_with_no_specified_name_for_the_time_being()
+>>>>>>> 9a82be4a4b4604c0bf7cfd121f8f5281806ce560
 
 
 def sum_temps(x):
