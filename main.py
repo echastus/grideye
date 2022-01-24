@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 import cv2 as cv
 from serial import Serial
+import time
 
 # Variables needed for loading the data from the serial link to Arduino Board.
 arduino_port1 = '/dev/cu.usbmodem14101'
@@ -32,7 +33,7 @@ def arr_to_img2(frame):
     new_frame = np.zeros(shape=(8, 8, 3), dtype=np.uint8)
     for i, row in enumerate(frame):
         for j, column in enumerate(row):
-            new_frame[i, j, :] = frame[i, j] / 80 * 255
+            new_frame[i, j, :] = frame[i][j] / 80 * 255
     return new_frame
 
 
@@ -121,32 +122,36 @@ def write_to_file(video_length, num_of_vids, sleep_time=5.5):
 
 
 # Main algorithm that determines, whether people go inside or outside.
-def main(filename, debug=False):
+def main(port, debug=False):
     # Initialising necessary variables.
+    timer = 0
     num_of_people = 0
-    framerate = 50
-    df = pd.read_csv(filename, header=None)
+    framerate = 1
     fgbg = cv.createBackgroundSubtractorMOG2()
     ltr = np.zeros(shape=(3,), dtype=bool)
     rtl = np.zeros(shape=(3,), dtype=bool)
-
+    serial_connection = Serial(port, baudrate=115200, timeout=2)
     # Loop that goes through each frame.
-    for i in range(len(df)):
-        frame = np.array(df.iloc[i]).reshape((8, 8))
+    while True:
+        data = serial_connection.readline().decode('ascii', 'ignore')
+        frame = data.split(" ")[:-1]
+        if len(frame) != 64:
+            continue
+        frame = np.transpose(np.array(frame, dtype=np.float16).reshape(8, 8))
 
-        # Create for different purposes.
-        temp_frame = arr_to_img2(np.transpose(frame))
+        # Created for different purposes.
+        temp_frame = arr_to_img2(frame)
         fgmask = fgbg.apply(temp_frame)
         movement_detection = arr_to_img(fgmask)
-        grideye_output = arr_to_img(np.transpose(frame))
+        grideye_output = arr_to_img(frame)
 
         # Brain of the algorithm.
         pixels = sum_pixel_vals(fgmask)
         temps = sum_temps(frame)
 
         # Initialise thresholds.
-        pixels_th = 765
-        temps_th = 620
+        pixels_th = 1
+        temps_th = 600
 
         # Checking all the conditions for people going left to right.
         if pixels[1] < pixels[0] and pixels[0] > pixels_th and not rtl[0]:
@@ -157,6 +162,7 @@ def main(filename, debug=False):
             if temps[1] > temps[0]:
                 ltr[1] = True
                 rtl.fill(False)
+
         if ltr[1] and ltr[0] and pixels[1] < pixels_th and not rtl[0]:
             if temps[1] < temps_th:
                 ltr[2] = True
@@ -178,13 +184,13 @@ def main(filename, debug=False):
             elif temps[1] > temps_th:
                 rtl[1] = False
 
+
         # Display different information about the current frame for debugging purposes.
         if debug:
             print(f'pixels[0], temps[0]: {pixels[0]}, {temps[0]}')
             print(f'pixels[1], temps[1]: {pixels[1]}, {temps[1]}')
             print(f'Left to right: {ltr}')
             print(f'Right to left: {rtl}\n')
-            framerate = 1000
 
         # Displaying information and adjusting the num_of_people value.
         if all(ltr):
@@ -193,12 +199,16 @@ def main(filename, debug=False):
             print(f'Current number of people inside: {num_of_people}')
             ltr.fill(False)
             rtl.fill(False)
+            info = f'<{1},{num_of_people}>'
+            serial_connection.write(info.encode())
         elif all(rtl):
             num_of_people -= 1
             print("Someone has just left the room!")
             print(f'Current number of people inside: {num_of_people}')
             rtl.fill(False)
             ltr.fill(False)
+            info = f'<{0},{num_of_people}>'
+            serial_connection.write(info.encode())
 
         # Displaying movement frame and the actual Grid-EYE output frame.
         cv.imshow("Movement detection", movement_detection)
@@ -210,5 +220,5 @@ def main(filename, debug=False):
 
 
 if __name__ == "__main__":
-    main('program_output2.csv', debug=False)
+    main(port=arduino_port2, debug=True)
 # 5, 8
