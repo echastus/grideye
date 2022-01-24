@@ -121,6 +121,23 @@ def write_to_file(video_length, num_of_vids, sleep_time=5.5):
     os.remove('trashfile.csv')
 
 
+def calibrate(serial_connection):
+    print("CALIBRATING...")
+    t_val = time.time()
+    sum_temp_vals = 0
+    correct_frames = 0
+    while np.abs(t_val - time.time()) < 5:
+        data = serial_connection.readline().decode('ascii', 'ignore')
+        frame = data.split(" ")[:-1]
+        if len(frame) == 64:
+            frame = np.transpose(np.array(frame, dtype=np.float16).reshape(8, 8))
+            current_temps = sum_temps(frame)
+            correct_frames += 1
+            sum_temp_vals += current_temps[0] + current_temps[1]
+    print("FINISHED CALIBRATING...")
+    return (sum_temp_vals / correct_frames) / 2 + 40
+
+
 # Main algorithm that determines, whether people go inside or outside.
 def main(port, debug=False):
     # Initialising necessary variables.
@@ -131,6 +148,15 @@ def main(port, debug=False):
     ltr = np.zeros(shape=(3,), dtype=bool)
     rtl = np.zeros(shape=(3,), dtype=bool)
     serial_connection = Serial(port, baudrate=115200, timeout=2)
+    timer_flag = False
+    start_flag = False
+
+    # Initialise thresholds.
+    pixels_th = 1
+    temps_th = calibrate(serial_connection)
+    print(temps_th)
+    time.sleep(3)
+
     # Loop that goes through each frame.
     while True:
         data = serial_connection.readline().decode('ascii', 'ignore')
@@ -145,26 +171,27 @@ def main(port, debug=False):
         movement_detection = arr_to_img(fgmask)
         grideye_output = arr_to_img(frame)
 
+        if timer_flag:
+            timer = time.time()
+            timer_flag = False
+            start_flag = True
+
         # Brain of the algorithm.
         pixels = sum_pixel_vals(fgmask)
         temps = sum_temps(frame)
-
-        # Initialise thresholds.
-        pixels_th = 1
-        temps_th = 600
 
         # Checking all the conditions for people going left to right.
         if pixels[1] < pixels[0] and pixels[0] > pixels_th and not rtl[0]:
             if temps[1] < temps[0] and temps[0] > temps_th:
                 ltr[0] = True
                 rtl.fill(False)
+                timer_flag = True
         if pixels[1] > pixels[0] and ltr[0] and not rtl[0]:
             if temps[1] > temps[0]:
                 ltr[1] = True
                 rtl.fill(False)
-
         if ltr[1] and ltr[0] and pixels[1] < pixels_th and not rtl[0]:
-            if temps[1] < temps_th:
+            if temps[1] < (temps_th - 30):
                 ltr[2] = True
             elif temps[0] > temps_th:
                 ltr[1] = False
@@ -174,16 +201,24 @@ def main(port, debug=False):
             if temps[0] < temps[1] and temps[1] > temps_th:
                 rtl[0] = True
                 ltr.fill(False)
+                timer_flag = True
         if pixels[0] > pixels[1] and rtl[0] and not ltr[0]:
             if temps[0] > temps[1]:
                 ltr.fill(False)
                 rtl[1] = True
         if rtl[1] and rtl[0] and pixels[0] < pixels_th and not ltr[0]:
-            if temps[0] < temps_th:
+            if temps[0] < (temps_th - 30):
                 rtl[2] = True
             elif temps[1] > temps_th:
                 rtl[1] = False
 
+        if np.abs(timer - time.time()) > 5 and start_flag:
+            timer_flag = True
+            start_flag = False
+            if ltr[0] and not ltr[1] and not ltr[2]:
+                ltr.fill(False)
+            if rtl[0] and not rtl[1] and not rtl[2]:
+                rtl.fill(False)
 
         # Display different information about the current frame for debugging purposes.
         if debug:
@@ -220,5 +255,5 @@ def main(port, debug=False):
 
 
 if __name__ == "__main__":
-    main(port=arduino_port2, debug=True)
+    main(port=arduino_port2, debug=False)
 # 5, 8
